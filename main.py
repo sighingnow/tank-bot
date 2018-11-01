@@ -110,6 +110,41 @@ class TankField:
         # else:
         pass
 
+    def enemyBaseOnSameRow(self, side: int, tank: int) -> bool:
+        pos_y = self.tanks[side][tank].y
+
+        base_y = self.bases[1 - side].y
+
+        return (pos_y == base_y)
+
+    def enemyTankOnSameRow(self, side: int, tank: int) -> bool:
+        pos_y = self.tanks[side][tank].y
+        pos_x = self.tanks[side][tank].x
+
+        for k in self.tanks[1 - side]:
+            # Two tanks on the same side
+            if (k.x - FIELD_WIDTH // 2) * (pos_x - FIELD_WIDTH // 2) > 0:
+                if pos_y == k.y: return True
+        return False
+
+    def leftToBase(self, side: int, tank: int) -> bool:
+        pos_x = self.tanks[side][tank].x
+
+        base_x = self.bases[1 - side].x
+
+        return (pos_x < base_x)
+
+    def leftToTank(self, side: int, tank: int) -> bool:
+        pos_y = self.tanks[side][tank].y
+        pos_x = self.tanks[side][tank].x
+
+        for k in self.tanks[1 - side]:
+            # Two tanks on the same side
+            if (k.destroyed): continue
+            if (k.x - FIELD_WIDTH // 2) * (pos_x - FIELD_WIDTH // 2) > 0:
+                if pos_x < k.x: return True
+        return False
+
     def enemyTankOnSameColumn(self, side: int, tank: int) -> list:
         # return enemy tank on the same column (position x is same)
         pos_x = self.tanks[side][tank].x
@@ -156,6 +191,8 @@ class TankField:
         pos_y = self.tanks[side][tank].y
         x = pos_x + dx[action]
         y = pos_y + dy[action]
+
+        if (x == FIELD_WIDTH // 2): return False
         return self._dis_between(target_x, target_y, x, y) < self._dis_between(target_x, target_y, pos_x, pos_y)
 
     def _dis_between(self, x1: int, y1: int, x2: int, y2: int) -> int:
@@ -305,6 +342,22 @@ if __name__ == '__main__':
         myActions = []
 
         for tank in range(TANK_PER_SIDE):
+            if (field.enemyBaseOnSameRow(io.mySide, tank)):
+                if lastAction[tank] in [Action.DownShoot, Action.UpShoot, Action.LeftShoot, Action.RightShoot]:
+                    myActions.append(Action.Stay)
+                    continue
+                if (not field.enemyTankOnSameRow(io.mySide, tank)):
+                    if (field.leftToBase(io.mySide, tank)):
+                        myActions.append(Action.RightShoot)
+                    else:
+                        myActions.append(Action.LeftShoot)
+                else:
+                    if (field.leftToTank(io.mySide, tank)):
+                        myActions.append(Action.RightShoot)
+                    else:
+                        myActions.append(Action.LeftShoot)
+                continue
+
             enemyTankOnSameColumn = field.enemyTankOnSameColumn(io.mySide, tank)
             if not enemyTankOnSameColumn:
                 if field.distanceToBrick(io.mySide, tank) == 1:
@@ -331,16 +384,20 @@ if __name__ == '__main__':
                         if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
                             if field.actionValid(io.mySide, tank, Action.Left):
                                 myActions.append(Action.Left)
-                            else:
+                            elif field.actionValid(io.mySide, tank, Action.Right):
                                 myActions.append(Action.Right)
+                            else:
+                                myActions.append(Action.Stay)
                         else:
                             myActions.append(Action.DownShoot)
                     else:
                         if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
                             if field.actionValid(io.mySide, tank, Action.Right):
                                 myActions.append(Action.Right)
-                            else:
+                            elif field.actionValid(io.mySide, tank, Action.Left):
                                 myActions.append(Action.Left)
+                            else:
+                                myActions.append(Action.Stay)
                         else:
                             myActions.append(Action.UpShoot)
                 elif numOfBricks > 1:
