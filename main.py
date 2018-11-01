@@ -104,11 +104,110 @@ class TankField:
         y = self.tanks[side][tank].y + dy[action]
         return self.inRange(x, y) and not self.fieldContent[y][x]
 
-    def seeTheSteel(self, side: int, tank: int) -> Action:
-        # if side == 0:
-        #     if self.tanks[side][tank]
-        # else:
-        pass
+    def noBrick(self, x1, y1, x2, y2):
+        if x1 != x2 and y1 != y2:
+            return False
+        if x1 == x2 and y1 == y2:
+            return False
+        if x1 == x2:
+            y1, y2 = min(y1, y2), max(y1, y2)
+            for yi in range(y1 + 1, y2):
+                if self.fieldContent[yi][x1] and not self.fieldContent[yi][x1][0].destroyed:
+                    return False
+            return True
+        else:
+            x1, x2 = min(x1, x2), max(x1, x2)
+            for xi in range(x1 + 1, x2):
+                if self.fieldContent[y1][xi] and not self.fieldContent[y1][xi][0].destroyed:
+                    return False
+            return True
+
+    def canShootBase(self, side: int, tank: int):
+        x, y = self.tanks[side][tank].x, self.tanks[side][tank].y
+        tx, ty = self.bases[1-side].x, self.bases[1-side].y
+        if self.noBrick(x, y, tx, ty):
+            return Action.LeftShoot if x > tx else Action.RightShoot
+        else:
+            return Action.Invalid
+
+    def canShootTank(self, side: int, tank: int, target: int):
+        x, y = self.tanks[side][tank].x, self.tanks[side][tank].y
+        tx, ty = self.tanks[1 - side][target].x, self.tanks[1 - side][target].y
+        if self.noBrick(x, y, tx, ty):
+            if x == tx:
+                return Action.UpShoot if y > ty else Action.DownShoot
+            else:
+                return Action.LeftShoot if x > tx else Action.RightShoot
+        else:
+            return Action.Invalid
+
+    # when the target move upwards, if we can hit it
+    def canShootTankUpwards(self, side: int, tank: int, target: int):
+        x, y = self.tanks[side][tank].x, self.tanks[side][tank].y
+        tx, ty = self.tanks[1 - side][target].x, self.tanks[1 - side][target].y - 1
+        if ty < 0:
+            return Action.Invalid
+        if self.noBrick(x, y, tx, ty):
+            if x == tx:
+                return Action.UpShoot if y > ty else Action.DownShoot
+            else:
+                return Action.LeftShoot if x > tx else Action.RightShoot
+        else:
+            return Action.Invalid
+
+    # when the target move downwards, if we can hit it
+    def canShootTankDownwords(self, side: int, tank: int, target: int):
+        x, y = self.tanks[side][tank].x, self.tanks[side][tank].y
+        tx, ty = self.tanks[1 - side][target].x, self.tanks[1 - side][target].y + 1
+        if ty >= FIELD_HEIGHT:
+            return Action.Invalid
+        if self.noBrick(x, y, tx, ty):
+            if x == tx:
+                return Action.UpShoot if y > ty else Action.DownShoot
+            else:
+                return Action.LeftShoot if x > tx else Action.RightShoot
+        else:
+            return Action.Invalid
+
+    def canMove(self, side: int, tank: int, move: int):
+        x, y = self.tanks[side][tank].x, self.tanks[side][tank].y
+        tx, ty = x, y
+        if move == Action.Left:
+            tx = tx - 1
+        elif move == Action.Right:
+            tx = tx + 1
+        elif move == Action.Up:
+            ty = ty - 1
+        else:
+            ty = ty + 1
+        if tx < 0 or tx >= FIELD_WIDTH or ty < 0 or ty > FIELD_HEIGHT:
+            return False
+        if tx == self.tanks[side][1-tank].x and ty == self.tanks[side][1-tank].y:
+            return True
+        if self.fieldContent[ty][tx] and not self.fieldContent[ty][tx][0].destroyed:
+            return False
+        return True
+
+    def canShot(self, side: int, tank: int, shoot: int):
+        x, y = self.tanks[side][tank].x, self.tanks[side][tank].y
+        dx, ty = 0, 0
+        if shoot == Action.LeftShoot:
+            dx = - 1
+        elif shoot == Action.RightShoot:
+            dx = 1
+        elif shoot == Action.UpShoot:
+            dy = - 1
+        else:
+            dy = 1
+        x, y = x + dx, y + dy
+        while x >= 0 and x < FIELD_WIDTH and y >= 0 and y < FIELD_HEIGHT:
+            if x == self.tanks[side][1-tank].x and y == self.tanks[side][1-tank].y:
+                return False # don't suicide
+            if self.fieldContent[y][x] and self.fieldContent[y][x][0].itemType == FieldItemType.Steel:
+                return False
+            if self.fieldContent[y][x] and self.fieldContent[y][x][0].itemType == FieldItemType.Brick:
+                return True
+        return True
 
     def enemyBaseOnSameRow(self, side: int, tank: int) -> bool:
         pos_y = self.tanks[side][tank].y
@@ -329,7 +428,7 @@ class BotzoneIO:
         if exitAfterOutput:
             exit(0)
         else:
-            print(">>>BOTZONE_REQUEST_KEEP_RUNNING<<<")
+            # print(">>>BOTZONE_REQUEST_KEEP_RUNNING<<<")
             sys.stdout.flush()
 
 def is_shoot(action):
@@ -338,95 +437,119 @@ def is_shoot(action):
 if __name__ == '__main__':
     field = TankField()
     io = BotzoneIO()
-    lastAction = [-9999, -9999]
+    lastAction = [Action.Invalid, Action.Invalid]
     while True:
         io.readInput(field)
 
-        myActions = []
+        myActions = [Action.Invalid, Action.Invalid]
+        destroyed = [field.tanks[1-io.mySide][0].destroyed, field.tanks[1-io.mySide][1].destroyed]
 
+        # if we can shoot the base
         for tank in range(TANK_PER_SIDE):
-            if (field.enemyBaseOnSameRow(io.mySide, tank)):
-                if is_shoot(lastAction[tank]):
-                    myActions.append(Action.Stay)
-                    continue
-                if (not field.enemyTankOnSameRow(io.mySide, tank)):
-                    if (field.leftToBase(io.mySide, tank)):
-                        myActions.append(Action.RightShoot)
-                    else:
-                        myActions.append(Action.LeftShoot)
-                else:
-                    if (field.leftToTank(io.mySide, tank)):
-                        myActions.append(Action.RightShoot)
-                    else:
-                        myActions.append(Action.LeftShoot)
-                continue
+            if not is_shoot(lastAction[tank]):
+                r = field.canShootBase(io.mySide, tank)
+                if r > 0:
+                    myActions[tank] = r
 
-            enemyTankOnSameColumn = field.enemyTankOnSameColumn(io.mySide, tank)
-            if not enemyTankOnSameColumn:
-                if field.distanceToBrick(io.mySide, tank) == 1:
-                    if io.mySide == 0:
-                        if is_shoot(lastAction[tank]):
-                            myActions.append(Action.Down)
-                        else:
-                            myActions.append(Action.DownShoot)
-                    elif io.mySide == 1:
-                        if is_shoot(lastAction[tank]):
-                            myActions.append(Action.Up)
-                        else:
-                            myActions.append(Action.UpShoot)
+        # if we can shoot a tank
+        for tank in range(TANK_PER_SIDE):
+            if myActions[tank] == Action.Invalid:
+                if not is_shoot(lastAction[tank]):
+                    for target in range(TANK_PER_SIDE):
+                        r = field.canShootTank(io.mySide, tank, target)
+                        if not destroyed[target] and r != Action.Invalid:
+                            myActions[tank] = r
+                            destroyed[tank] = True
                 else:
-                    availableActions = [
-                        action for action in range(Action.Stay, Action.LeftShoot + 1) \
-                                 if field.actionValid(io.mySide, tank, action) and field.getCloserToBase(io.mySide, tank, action)
-                    ]
-                    myActions.append(random.choice(availableActions))
-            else:
-                numOfBricks = field.numBetweenTanks(io.mySide, tank, enemyTankOnSameColumn[0])
-                if numOfBricks == 0:
-                    if io.mySide == 0:
-                        if is_shoot(lastAction[tank]):
-                            if field.actionValid(io.mySide, tank, Action.Left):
-                                myActions.append(Action.Left)
-                            elif field.actionValid(io.mySide, tank, Action.Right):
-                                myActions.append(Action.Right)
+                    # avoid to be shot
+                    for target in range(TANK_PER_SIDE):
+                        r = field.canShootTank(io.mySide, tank, target)
+                        if not destroyed[target] and r != Action.Invalid:
+                            # we will be shot
+                            if field.canMove(io.mySide, tank, Action.Left):
+                                myActions[tank] = Action.Left
+                            elif field.canMove(io.mySide, tank, Action.Right):
+                                myActions[tank] = Action.Right
                             else:
-                                myActions.append(Action.Stay)
+                                pass # will be dicide later.
+
+        # if we can shoot beforehand
+        for tank in range(TANK_PER_SIDE):
+            if myActions[tank] == Action.Invalid:
+                if not is_shoot(lastAction[tank]):
+                    for target in range(TANK_PER_SIDE):
+                        if io.mySide == 0:
+                            r = field.canShootTankUpwards(io.mySide, tank, target)
                         else:
-                            myActions.append(Action.DownShoot)
-                    else:
-                        if is_shoot(lastAction[tank]):
-                            if field.actionValid(io.mySide, tank, Action.Right):
-                                myActions.append(Action.Right)
-                            elif field.actionValid(io.mySide, tank, Action.Left):
-                                myActions.append(Action.Left)
-                            else:
-                                myActions.append(Action.Stay)
-                        else:
-                            myActions.append(Action.UpShoot)
-                elif numOfBricks > 1:
-                    if io.mySide == 0:
-                        if is_shoot(lastAction[tank]):
-                            if field.actionValid(io.mySide, tank, Action.Down):
-                                myActions.append(Action.Down)
-                            else:
-                                myActions.append(Action.Stay) # we don't move, TODO: hit the brid
-                        else:
-                            myActions.append(Action.DownShoot)
-                    else:
-                        if is_shoot(lastAction[tank]):
-                            if field.actionValid(io.mySide, tank, Action.Up):
-                                myActions.append(Action.Up)
-                            else:
-                                myActions.append(Action.Stay) # we don't move, TODO: hit the brid
-                        else:
-                            myActions.append(Action.UpShoot)
+                            r = field.canShootTankDownwords(io.mySide, tank, target)
+                        if not destroyed[tank] and r != Action.Invalid:
+                            # here don't mark the target as destroyed, since we need avoid to be shot
+                            myActions[tank] = r
                 else:
-                    availableActions = [
-                        action for action in range(Action.Stay, Action.LeftShoot + 1) \
-                                 if field.actionValid(io.mySide, tank, action) and field.getCloserToBase(io.mySide, tank, action)
-                    ]
-                    availableActions.append(Action.Stay)
-                    myActions.append(random.choice(availableActions))
+                    pass # TODO: if we would be shot after move, just stay
+
+        # otherwise: avoid to be shot and move towards the base
+        for tank in range(TANK_PER_SIDE):
+            if myActions[tank] == Action.Invalid:
+                r = field.enemyTankOnSameColumn(io.mySide, tank)
+                if r:
+                    dist = field.numBetweenTanks(io.mySide, tank, r[0])
+                    up = field.tanks[io.mySide][tank].y > r[0].y
+                    if dist == 1: # move towards the target, OR stay
+                        if up:
+                            if field.canMove(io.mySide, tank, Action.Up):
+                                myActions[tank] = Action.Up
+                            else:
+                                myActions[tank] = Action.Stay
+                        else:
+                            if field.canMove(io.mySide, tank, Action.Down):
+                                myActions[tank] = Action.Down
+                            else:
+                                myActions[tank] = Action.Stay
+                    else:
+                        if up:
+                            if not is_shoot(lastAction[tank]):
+                                myActions[tank] = Action.UpShoot
+                            elif field.canMove(io.mySide, tank, Action.Up):
+                                myActions[tank] = Action.Up
+                            else:
+                                myActions[tank] = Action.Stay # TODO: we have nothing else can no
+                        else:
+                            if not is_shoot(lastAction[tank]):
+                                myActions[tank] = Action.DownShoot
+                            elif field.canMove(io.mySide, tank, Action.Down):
+                                myActions[tank] = Action.Down
+                            else:
+                                myActions[tank] = Action.Stay # TODO: we have nothing else can no
+                else:
+                    # move towards the target
+                    if io.mySide == 0: # move downwards
+                        if field.canMove(io.mySide, tank, Action.Down):
+                            myActions[tank] = Action.Down
+                        elif not is_shoot(lastAction[tank]) and field.canShot(io.mySide, tank, Action.DownShoot):
+                            myActions[tank] = Action.DownShoot # hit the brick
+                        elif field.canMove(io.mySide, tank, Action.Left):
+                            myActions[tank] = Action.Left
+                        elif field.canMove(io.mySide, tank, Action.Right):
+                            myActions[tank] = Action.Right
+                        else:
+                            myActions[tank] = Action.Stay
+                    else: # move upwards
+                        if field.canMove(io.mySide, tank, Action.Up):
+                            myActions[tank] = Action.Up
+                        elif not is_shoot(lastAction[tank]) and field.canShot(io.mySide, tank, Action.UpShoot):
+                            myActions[tank] = Action.UpShoot # hit the brick
+                        elif field.canMove(io.mySide, tank, Action.Left):
+                            myActions[tank] = Action.Left
+                        elif field.canMove(io.mySide, tank, Action.Right):
+                            myActions[tank] = Action.Right
+                        else:
+                            myActions[tank] = Action.Stay
+
+        # ensure we don't give invalid operation
+        for tank in range(TANK_PER_SIDE):
+            if myActions[tank] == Action.Invalid:
+                myActions[tank] = Action.Stay # stay: for better debugging
 
         io.writeOutput(myActions, "DEBUG!", io.data, io.globaldata, False)
         field.setActions(io.mySide, myActions)
