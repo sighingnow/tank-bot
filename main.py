@@ -180,7 +180,7 @@ class TankField:
             ty = ty - 1
         else:
             ty = ty + 1
-        if tx < 0 or tx >= FIELD_WIDTH or ty < 0 or ty > FIELD_HEIGHT:
+        if tx < 0 or tx >= FIELD_WIDTH or ty < 0 or ty >= FIELD_HEIGHT:
             return False
         if tx == self.tanks[side][1-tank].x and ty == self.tanks[side][1-tank].y:
             return True
