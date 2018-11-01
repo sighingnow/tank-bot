@@ -292,6 +292,7 @@ class BotzoneIO:
 if __name__ == '__main__':
     field = TankField()
     io = BotzoneIO()
+    lastAction = [-9999, -9999]
     while True:
         io.readInput(field)
 
@@ -302,9 +303,15 @@ if __name__ == '__main__':
             if not enemyTankOnSameColumn:
                 if field.distanceToBrick(io.mySide, tank) == 1:
                     if io.mySide == 0:
-                        myActions.append(Action.DownShoot)
+                        if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
+                            myActions.append(Action.Left)
+                        else:
+                            myActions.append(Action.DownShoot)
                     elif io.mySide == 1:
-                        myActions.append(Action.UpShoot)
+                        if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
+                            myActions.append(Action.Right)
+                        else:
+                            myActions.append(Action.UpShoot)
                 else:
                     availableActions = [
                         action for action in range(Action.Stay, Action.LeftShoot + 1) \
@@ -315,9 +322,15 @@ if __name__ == '__main__':
                 numOfBricks = field.numBetweenTanks(io.mySide, tank, enemyTankOnSameColumn[0])
                 if (numOfBricks > 1 or numOfBricks == 0):
                     if io.mySide == 0:
-                        myActions.append(Action.DownShoot)
+                        if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
+                            myActions.append(Action.Down)
+                        else:
+                            myActions.append(Action.DownShoot)
                     elif io.mySide == 1:
-                        myActions.append(Action.UpShoot)
+                        if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
+                            myActions.append(Action.Up)
+                        else:
+                            myActions.append(Action.UpShoot)
                 else:
                     availableActions = [
                         action for action in range(Action.Stay, Action.LeftShoot + 1) \
@@ -328,3 +341,5 @@ if __name__ == '__main__':
 
         io.writeOutput(myActions, "DEBUG!", io.data, io.globaldata, False)
         field.setActions(io.mySide, myActions)
+        lastAction[0] = myActions[0]
+        lastAction[1] = myActions[1]
