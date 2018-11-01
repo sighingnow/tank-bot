@@ -16,17 +16,13 @@ init_grid = [
     [1, 1, 0, 0, 0, 0, 0, 0, 0]
 ]
 
-# (x, y): x * 9 + y = (i * 27 + j)
-#   thus: i = (x * 9 + y) // 27
-#         j = (x * 9 + y) % 27
-
-
 def to_binary(data):
-    field = [['0'] * 27] * 3
-    for x, line in enumerate(data):
-        for y, v in enumerate(line):
-            i, j = (x * 9 + y) // 27, (x * 9 + y) % 27
-            field[i][j] = str(v)
+    field = [['0'] * 27, ['0'] * 27, ['0'] * 27]
+    for i in range(3):
+        for y in range(i * 3, i * 3 + 3):
+            for x in range(0, 9):
+                if data[y][x]:
+                    field[i][26 - (y % 3 * 9 + x)] = '1'
     return [int("".join(line), 2) for line in field]
 
 def start_proc(command):
