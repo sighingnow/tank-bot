@@ -104,6 +104,12 @@ class TankField:
         y = self.tanks[side][tank].y + dy[action]
         return self.inRange(x, y) and not self.fieldContent[y][x]
 
+    def seeTheSteel(self, side: int, tank: int) -> Action:
+        # if side == 0:
+        #     if self.tanks[side][tank]
+        # else:
+        pass
+
     def enemyTankOnSameColumn(self, side: int, tank: int) -> list:
         # return enemy tank on the same column (position x is same)
         pos_x = self.tanks[side][tank].x
@@ -323,23 +329,35 @@ if __name__ == '__main__':
                 if numOfBricks == 0:
                     if io.mySide == 0:
                         if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
-                            myActions.append(Action.Left)
+                            if field.actionValid(io.mySide, tank, Action.Left):
+                                myActions.append(Action.Left)
+                            else:
+                                myActions.append(Action.Right)
                         else:
                             myActions.append(Action.DownShoot)
                     else:
                         if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
-                            myActions.append(Action.Right)
+                            if field.actionValid(io.mySide, tank, Action.Right):
+                                myActions.append(Action.Right)
+                            else:
+                                myActions.append(Action.Left)
                         else:
                             myActions.append(Action.UpShoot)
                 elif numOfBricks > 1:
                     if io.mySide == 0:
                         if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
-                            myActions.append(Action.Down)
+                            if field.actionValid(io.mySide, tank, Action.Down):
+                                myActions.append(Action.Down)
+                            else:
+                                myActions.append(Action.Stay) # we don't move, TODO: hit the brid
                         else:
                             myActions.append(Action.DownShoot)
                     else:
                         if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
-                            myActions.append(Action.Up)
+                            if field.actionValid(io.mySide, tank, Action.Up):
+                                myActions.append(Action.Up)
+                            else:
+                                myActions.append(Action.Stay) # we don't move, TODO: hit the brid
                         else:
                             myActions.append(Action.UpShoot)
                 else:
