@@ -304,12 +304,12 @@ if __name__ == '__main__':
                 if field.distanceToBrick(io.mySide, tank) == 1:
                     if io.mySide == 0:
                         if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
-                            myActions.append(Action.Left)
+                            myActions.append(Action.Down)
                         else:
                             myActions.append(Action.DownShoot)
                     elif io.mySide == 1:
                         if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
-                            myActions.append(Action.Right)
+                            myActions.append(Action.Up)
                         else:
                             myActions.append(Action.UpShoot)
                 else:
@@ -320,13 +320,24 @@ if __name__ == '__main__':
                     myActions.append(random.choice(availableActions))
             else:
                 numOfBricks = field.numBetweenTanks(io.mySide, tank, enemyTankOnSameColumn[0])
-                if (numOfBricks > 1 or numOfBricks == 0):
+                if numOfBricks == 0:
+                    if io.mySide == 0:
+                        if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
+                            myActions.append(Action.Left)
+                        else:
+                            myActions.append(Action.DownShoot)
+                    else:
+                        if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
+                            myActions.append(Action.Right)
+                        else:
+                            myActions.append(Action.UpShoot)
+                elif numOfBricks > 1:
                     if io.mySide == 0:
                         if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
                             myActions.append(Action.Down)
                         else:
                             myActions.append(Action.DownShoot)
-                    elif io.mySide == 1:
+                    else:
                         if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
                             myActions.append(Action.Up)
                         else:
