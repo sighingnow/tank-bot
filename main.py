@@ -428,7 +428,7 @@ class BotzoneIO:
         if exitAfterOutput:
             exit(0)
         else:
-            # print(">>>BOTZONE_REQUEST_KEEP_RUNNING<<<")
+            print(">>>BOTZONE_REQUEST_KEEP_RUNNING<<<")
             sys.stdout.flush()
 
 def is_shoot(action):
