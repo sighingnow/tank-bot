@@ -332,6 +332,9 @@ class BotzoneIO:
             print(">>>BOTZONE_REQUEST_KEEP_RUNNING<<<")
             sys.stdout.flush()
 
+def is_shoot(action):
+    return action in [Action.DownShoot, Action.UpShoot, Action.LeftShoot, Action.RightShoot]
+
 if __name__ == '__main__':
     field = TankField()
     io = BotzoneIO()
@@ -343,7 +346,7 @@ if __name__ == '__main__':
 
         for tank in range(TANK_PER_SIDE):
             if (field.enemyBaseOnSameRow(io.mySide, tank)):
-                if lastAction[tank] in [Action.DownShoot, Action.UpShoot, Action.LeftShoot, Action.RightShoot]:
+                if is_shoot(lastAction[tank]):
                     myActions.append(Action.Stay)
                     continue
                 if (not field.enemyTankOnSameRow(io.mySide, tank)):
@@ -362,12 +365,12 @@ if __name__ == '__main__':
             if not enemyTankOnSameColumn:
                 if field.distanceToBrick(io.mySide, tank) == 1:
                     if io.mySide == 0:
-                        if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
+                        if is_shoot(lastAction[tank]):
                             myActions.append(Action.Down)
                         else:
                             myActions.append(Action.DownShoot)
                     elif io.mySide == 1:
-                        if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
+                        if is_shoot(lastAction[tank]):
                             myActions.append(Action.Up)
                         else:
                             myActions.append(Action.UpShoot)
@@ -381,7 +384,7 @@ if __name__ == '__main__':
                 numOfBricks = field.numBetweenTanks(io.mySide, tank, enemyTankOnSameColumn[0])
                 if numOfBricks == 0:
                     if io.mySide == 0:
-                        if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
+                        if is_shoot(lastAction[tank]):
                             if field.actionValid(io.mySide, tank, Action.Left):
                                 myActions.append(Action.Left)
                             elif field.actionValid(io.mySide, tank, Action.Right):
@@ -391,7 +394,7 @@ if __name__ == '__main__':
                         else:
                             myActions.append(Action.DownShoot)
                     else:
-                        if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
+                        if is_shoot(lastAction[tank]):
                             if field.actionValid(io.mySide, tank, Action.Right):
                                 myActions.append(Action.Right)
                             elif field.actionValid(io.mySide, tank, Action.Left):
@@ -402,7 +405,7 @@ if __name__ == '__main__':
                             myActions.append(Action.UpShoot)
                 elif numOfBricks > 1:
                     if io.mySide == 0:
-                        if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
+                        if is_shoot(lastAction[tank]):
                             if field.actionValid(io.mySide, tank, Action.Down):
                                 myActions.append(Action.Down)
                             else:
@@ -410,7 +413,7 @@ if __name__ == '__main__':
                         else:
                             myActions.append(Action.DownShoot)
                     else:
-                        if lastAction[tank] in [Action.DownShoot, Action.UpShoot]:
+                        if is_shoot(lastAction[tank]):
                             if field.actionValid(io.mySide, tank, Action.Up):
                                 myActions.append(Action.Up)
                             else:
