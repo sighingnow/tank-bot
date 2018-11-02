@@ -152,7 +152,7 @@ class TankField:
 
         enemy = 1 - side
         for tank in self.tanks[enemy]:
-            if tank.x == pos_x:
+            if not tank.destroyed and tank.x == pos_x:
                 return [tank]
         return []
 
