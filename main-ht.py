@@ -400,6 +400,8 @@ class TankField:
                     row = row + "{} ".format(self.fieldContent[y][x][0].itemType)
             print (row, file=sys.stderr)
 
+enemyLastActions = []
+
 class BotzoneIO:
     def __init__(self, longRunning = False):
         self.longRunning = longRunning
@@ -413,6 +415,7 @@ class BotzoneIO:
             field.fromBinary(item['field'])
         elif isOpponent:
             field.setActions(1 - self.mySide, item)
+            enemyLastActions = item
             field.doActions()
         else:
             field.setActions(self.mySide, item)
@@ -489,14 +492,18 @@ if __name__ == '__main__':
                     for target in range(TANK_PER_SIDE):
                         r = field.canShootTank(io.mySide, tank, target)
                         if not destroyed[target] and r != Action.Invalid:
-                            # we will be shot
-                            if field.canMove(io.mySide, tank, Action.Left):
-                                myActions[tank] = Action.Left
-                            elif field.canMove(io.mySide, tank, Action.Right):
-                                myActions[tank] = Action.Right
+                            if not is_shoot(enemyLastActions[target]):
+                                # we will be shot
+                                if field.canMove(io.mySide, tank, Action.Left):
+                                    myActions[tank] = Action.Left
+                                elif field.canMove(io.mySide, tank, Action.Right):
+                                    myActions[tank] = Action.Right
+                                else:
+                                    pass # will be dicide later.
                             else:
-                                pass # will be dicide later.
-
+                                myActions[tank] = Action.Down if io.mySide == 0 else Action.Up
+                                if not field.actionValid(io.mySide, tank, myActions[tank]):
+                                    myActions[tank] = Action.Invalid
                 debug.append({'scope': 'shoot tank', 'tank': tank})
 
         # if we can shoot beforehand
