@@ -140,6 +140,11 @@ class TankField:
         x, y = self.tanks[side][tank].x, self.tanks[side][tank].y
         tx, ty = self.bases[1-side].x, self.bases[1-side].y
         if y == ty:
+            if self.noBrick(x, y, tx, ty):
+                return Action.LeftShoot if x > tx else Action.RightShoot
+            for target in range(TANK_PER_SIDE):
+                if self.canShootTank(side, tank, target) != Action.Invalid:
+                    return Action.Invalid
             return Action.LeftShoot if x > tx else Action.RightShoot
         else:
             return Action.Invalid
@@ -147,6 +152,10 @@ class TankField:
     def canShootTank(self, side: int, tank: int, target: int, movex: int = 0, movey: int = 0):
         x, y = self.tanks[side][tank].x + movex, self.tanks[side][tank].y + movey
         tx, ty = self.tanks[1 - side][target].x, self.tanks[1 - side][target].y
+
+        if (x == tx and y == ty): return Action.Invalid
+        if self.tanks[1 - side][target].destroyed:
+            return Action.Invalid
         if self.noBrick(x, y, tx, ty):
             if x == tx:
                 return Action.UpShoot if y > ty else Action.DownShoot
@@ -205,6 +214,9 @@ class TankField:
         if tx < 0 or tx >= FIELD_WIDTH or ty < 0 or ty >= FIELD_HEIGHT:
             return False
         if tx == self.tanks[side][1-tank].x and ty == self.tanks[side][1-tank].y:
+            return True
+        if self.fieldContent[ty][tx] and \
+                self.fieldContent[ty][tx][0].itemType == FieldItemType.Tank:
             return True
         if self.fieldContent[ty][tx] and not self.fieldContent[ty][tx][0].destroyed:
             return False
@@ -536,7 +548,7 @@ if __name__ == '__main__':
                                     pass # will be dicide later.
                             else:
                                 myActions[tank] = Action.Down if io.mySide == 0 else Action.Up
-                                if not field.actionValid(io.mySide, tank, myActions[tank]):
+                                if not field.canMove(io.mySide, tank, myActions[tank]):
                                     myActions[tank] = Action.Invalid
                 debug.append({'scope': 'shoot tank', 'tank': tank})
 
