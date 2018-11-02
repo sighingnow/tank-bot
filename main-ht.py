@@ -53,8 +53,8 @@ class Base(FieldObject):
         self.side = side
 
 class Tank(FieldObject):
-    def __init__(self, side: int, tankID: int):
-        super().__init__(6 if side ^ tankID else 2, side * 8, FieldItemType.Tank)
+    def __init__(self, side: int, tankID: int, x: int = -1, y: int = -1):
+        super().__init__(x if x != -1 else (6 if side ^ tankID else 2), y if y != -1 else (side * 8), FieldItemType.Tank)
         self.side = side
         self.tankID = tankID
 
@@ -95,6 +95,20 @@ class TankField:
                         self.insertFieldItem(FieldObject(x, y, FieldItemType.Brick))
                     mask = mask << 1
 
+    def fromMatrix(self, m):
+        for y in range(0, FIELD_HEIGHT):
+            for x in range(0, FIELD_WIDTH):
+                if m[y][x] == 0:
+                    self.fieldContent[y][x] = []
+                elif m[y][x] == 1:
+                    self.fieldContent[y][x] = [FieldObject(x, y, FieldItemType.Brick)]
+                elif m[y][x] in [-1, -2, -3, -4]:
+                    side, no = (-m[y][x] - 1) // 2, (-m[y][x] - 1) % 2
+                    self.tanks[side][no] = Tank(side, no, x, y)
+                    self.fieldContent[y][x] = [self.tanks[side][no]]
+                else:
+                    pass
+
     def actionValid(self, side: int, tank: int, action: Action) -> bool:
         if action >= Action.UpShoot and self.lastActions[side][tank] >= Action.UpShoot:
             return False
@@ -125,6 +139,7 @@ class TankField:
     def canShootBase(self, side: int, tank: int):
         x, y = self.tanks[side][tank].x, self.tanks[side][tank].y
         tx, ty = self.bases[1-side].x, self.bases[1-side].y
+        print(side, x, y, tx, ty)
         if y == ty:
             return Action.LeftShoot if x > tx else Action.RightShoot
         else:
@@ -455,12 +470,32 @@ class BotzoneIO:
 def is_shoot(action):
     return action in [Action.DownShoot, Action.UpShoot, Action.LeftShoot, Action.RightShoot]
 
+# Nil = 0
+# Brick = 1
+# Steel = 2
+# Base = 3
+# Tank = 4, tanks: -1, -2, -3, -4
+init_grid = [
+    [1, 1, 0, 1, 3, 1, 0, 0, 0],
+    [0, 0, 0, 0, 2, 1, 0, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 0, 1, 0, 0, 0, 0, 0],
+    [1, 1, 0, 1, 1, 0, 0, 1, 1],
+    [0, 0, 0, 0, 1, 0, -3, 1, 1],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 1, 0, 1, 2, -1, 0, 0, 0],
+    [0, 0, 0, 1, 3, -2, 0, 1, 1]
+]
+
 if __name__ == '__main__':
     field = TankField()
     io = BotzoneIO()
     lastAction = [Action.Invalid, Action.Invalid]
     while True:
         io.readInput(field)
+
+        # io.mySide = 0
+        # field.fromMatrix(init_grid)
 
         debug = []
 
