@@ -509,11 +509,21 @@ if __name__ == '__main__':
                                 # here don't mark the target as destroyed, since we need avoid to be shot
                                 myActions[tank] = r1
                                 debug.append({'tank': tank, 'target': target, 'beforehand action': r1})
-                            elif r2 != Action.Invalid:
+                            elif r2 != Action.Invalid and random.random() > 0.2:
                                 myActions[tank] = Action.Stay # we just wait it
-                                debug.append({'tank': tank, 'target': target, 'beforehand action more': r1})
+                                debug.append({'tank': tank, 'target': target, 'beforehand action more 1': r1})
                 else:
-                    pass # TODO: if we would be shot after move, just stay
+                    for target in range(TANK_PER_SIDE):
+                        if io.mySide == 0:
+                            r1 = field.canShootTankUpwards(io.mySide, tank, target)
+                            r2 = field.canShootTankUpwards(io.mySide, tank, target, 2)
+                        else:
+                            r1 = field.canShootTankDownwords(io.mySide, tank, target)
+                            r2 = field.canShootTankDownwords(io.mySide, tank, target, 2)
+                        if not destroyed[tank]:
+                            if (r1 != Action.Invalid or r2 != Action.Invalid) and random.random() > 0.4:
+                                myActions[tank] = Action.Stay # we just wait it
+                                debug.append({'tank': tank, 'target': target, 'beforehand action more 2': r1})
 
                 debug.append({'scope': 'shoot beforehand', 'tank': tank})
 
