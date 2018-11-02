@@ -130,8 +130,8 @@ class TankField:
         else:
             return Action.Invalid
 
-    def canShootTank(self, side: int, tank: int, target: int):
-        x, y = self.tanks[side][tank].x, self.tanks[side][tank].y
+    def canShootTank(self, side: int, tank: int, target: int, movex: int = 0, movey: int = 0):
+        x, y = self.tanks[side][tank].x + movex, self.tanks[side][tank].y + movey
         tx, ty = self.tanks[1 - side][target].x, self.tanks[1 - side][target].y
         if self.noBrick(x, y, tx, ty):
             if x == tx:
@@ -276,6 +276,12 @@ class TankField:
             if (self.fieldContent[y][pos_x] and self.fieldContent[y][pos_x][0].itemType == FieldItemType.Brick):
                 min_dis = min(min_dis, abs(y - pos_y))
         return min_dis
+
+    def distanceYToBase(self, side: int):
+        m = 9999
+        for tank in self.tanks[side]:
+            m = min(m, abs(tank.y - self.bases[1-side].y))
+        return m
 
     def numBetweenTanks(self, side: int, tank1: int, tank2:FieldObject) -> int:
         x = self.tanks[side][tank1].x
@@ -526,6 +532,21 @@ if __name__ == '__main__':
                                 debug.append({'tank': tank, 'target': target, 'beforehand action more 2': r1})
 
                 debug.append({'scope': 'shoot beforehand', 'tank': tank})
+
+        # protect our base
+        for tank in range(TANK_PER_SIDE):
+            if myActions[tank] == Action.Invalid:
+                if field.distanceYToBase(io.mySide) >= field.distanceYToBase(1-io.mySide):
+                    if field.canMove(io.mySide, tank, Action.Right) and \
+                            field.canShootTank(io.mySide, tank, target, 1, 0) != Action.Invalid:
+                        myActions[tank] = Action.Right
+                        debug.append({'protect': tank, 'direction': Action.Right})
+                    elif field.canMove(io.mySide, tank, Action.Left) and \
+                            field.canShootTank(io.mySide, tank, target, -1, 0) != Action.Invalid:
+                        myActions[tank] = Action.Left
+                        debug.append({'protect': tank, 'direction': Action.Left})
+
+            debug.append({'scope': 'protect', 'tank': tank})
 
         # otherwise: avoid to be shot and move towards the base
         for tank in range(TANK_PER_SIDE):
