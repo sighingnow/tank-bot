@@ -139,7 +139,6 @@ class TankField:
     def canShootBase(self, side: int, tank: int):
         x, y = self.tanks[side][tank].x, self.tanks[side][tank].y
         tx, ty = self.bases[1-side].x, self.bases[1-side].y
-        print(side, x, y, tx, ty)
         if y == ty:
             return Action.LeftShoot if x > tx else Action.RightShoot
         else:
