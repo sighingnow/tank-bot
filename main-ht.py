@@ -475,7 +475,7 @@ if __name__ == '__main__':
                     myActions[tank] = r
                     debug.append({'tank': tank, 'shoot the base': r})
 
-                debug.append({'scope': 'shoot base', 'tank': tank})
+            debug.append({'scope': 'shoot base', 'tank': tank})
 
         # if we can shoot a tank
         for tank in range(TANK_PER_SIDE):
@@ -492,7 +492,7 @@ if __name__ == '__main__':
                     for target in range(TANK_PER_SIDE):
                         r = field.canShootTank(io.mySide, tank, target)
                         if not destroyed[target] and r != Action.Invalid:
-                            if not is_shoot(enemyLastActions[target]):
+                            if enemyLastActions and not is_shoot(enemyLastActions[target]):
                                 # we will be shot
                                 if field.canMove(io.mySide, tank, Action.Left):
                                     myActions[tank] = Action.Left
